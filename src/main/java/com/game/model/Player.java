@@ -100,6 +100,7 @@ public class Player {
 
     @Override
     public boolean equals(Object o) {
+        //не нужно
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Player player = (Player) o;
@@ -108,6 +109,7 @@ public class Player {
 
     @Override
     public int hashCode() {
+        //не нужно
         return Objects.hash(id, name, title, race, profession, experience, level, untilNextLevel, birthday, banned);
     }
 }
