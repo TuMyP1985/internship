@@ -5,6 +5,7 @@ import com.game.entity.Profession;
 import com.game.entity.Race;
 import com.game.model.Player;
 import com.mysql.cj.jdbc.MysqlDataSource;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import javax.sql.DataSource;
@@ -17,20 +18,14 @@ import java.util.concurrent.atomic.AtomicLong;
 @Service
 public class PlayerServiceImp implements PlayerService {
 
-    static DataSource dataSource = getDataSource();
+    DataSource dataSource ;
 
-    public static DataSource getDataSource()  {
-        MysqlDataSource dataSource = new MysqlDataSource();
-        dataSource.setDatabaseName("rpg");          dataSource.setServerName("localhost");
-        dataSource.setPort(3306);                   dataSource.setUser("root");
-        dataSource.setPassword("root");
-        try {
-            dataSource.setServerTimezone("UTC");
-        } catch (SQLException e) {e.printStackTrace();}
-        return dataSource;
+    @Autowired
+    public PlayerServiceImp(DataSource dataSource) {
+        this.dataSource = dataSource;
     }
 
-    public static void playerCreatInDB(Player player) {
+    public void playerCreatInDB(Player player) {
         try {
             Connection connection = dataSource.getConnection();
 
@@ -99,7 +94,7 @@ public class PlayerServiceImp implements PlayerService {
         return null;
     }
 
-    public static List<Player> listFromDB(String sql) {
+    public  List<Player> listFromDB(String sql) {
         List<Player> players = new ArrayList<>();
         try {
             Class.forName("com.mysql.jdbc.Driver");
@@ -144,7 +139,7 @@ public class PlayerServiceImp implements PlayerService {
         return players;
     }
 
-    public static boolean delInDB(Long id) {
+    public  boolean delInDB(Long id) {
         try {
             Class.forName("com.mysql.jdbc.Driver");
             Connection connection = dataSource.getConnection();
@@ -165,7 +160,7 @@ public class PlayerServiceImp implements PlayerService {
 
 
 
-    public static boolean playerUpdateInDB(Player player) {
+    public  boolean playerUpdateInDB(Player player) {
         try {
             Connection connection = dataSource.getConnection();
             Statement statId = connection.createStatement();
