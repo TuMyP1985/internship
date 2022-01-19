@@ -17,27 +17,49 @@ import java.util.concurrent.atomic.AtomicLong;
 @Service
 public class PlayerServiceImp implements PlayerService {
 
-    static final String JDBC_DRIVER = "com.mysql.cj.jdbc.Driver";//com.mysql.jdbc.Driver";
-    static final String DATABASE_URL = "jdbc:mysql://localhost:3306/rpg?serverTimezone=UTC&characterEncoding=UTF-8";//jdbc:mysql://localhost/PROSELYTE_TUTORIALS";
-    static final String USER = "root";
-    static final String PASSWORD = "root";
     static DataSource dataSource = getDataSource();
 
     public static DataSource getDataSource()  {
-
         MysqlDataSource dataSource = new MysqlDataSource();
-        dataSource.setDatabaseName("rpg");
-        dataSource.setServerName("localhost");
-        dataSource.setPort(3306);
-        dataSource.setUser("root");
+        dataSource.setDatabaseName("rpg");          dataSource.setServerName("localhost");
+        dataSource.setPort(3306);                   dataSource.setUser("root");
         dataSource.setPassword("root");
         try {
             dataSource.setServerTimezone("UTC");
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-
+        } catch (SQLException e) {e.printStackTrace();}
         return dataSource;
+    }
+
+    public static void playerCreatInDB(Player player) {
+        try {
+            Connection connection = dataSource.getConnection();
+
+            String sql = "INSERT INTO rpg.player (name,title,race,profession,experience,level,untilNextLevel,birthday,banned) VALUES (?,?,?,?,?,?,?,?,?)";
+            PreparedStatement statement = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);   //сжал текст ниже, чтобы всё на одну страницу влезно
+            //statement.setLong(1, player.getId()); //убрал первый ? из  VALUES (?,
+            statement.setString(1, player.getName());               statement.setString(2, player.getTitle());
+            statement.setString(3, player.getRace().toString());    statement.setString(4, player.getProfession().toString());
+            statement.setInt(5, player.getExperience());            statement.setInt(6, player.getLevel());
+            statement.setInt(7, player.getUntilNextLevel());        statement.setString(8, new SimpleDateFormat("YYYY-MM-dd").format(player.getBirthday()));
+            statement.setBoolean(9, player.getBanned());
+            int affectedRows = statement.executeUpdate();
+
+            if (affectedRows == 0)
+                throw new SQLException("Creating user failed, no rows affected.");
+
+            try (ResultSet generatedKeys = statement.getGeneratedKeys()) {
+                if (generatedKeys.next())
+                    player.setId(generatedKeys.getLong(1));
+                else
+                    throw new SQLException("Creating player failed, no ID obtained.");
+            }
+            connection.close();
+        } catch (Exception e) {            e.printStackTrace();        }       }
+
+    @Override
+    public void create(Player player) {
+        update_Level_UntilNextLevel(player);//тут обновляем по формуле из ТЗ player.untilNextLevel и player.level
+        playerCreatInDB(player);//тут сама запись в БД
     }
 
 
@@ -142,46 +164,6 @@ public class PlayerServiceImp implements PlayerService {
     }
 
 
-    @Override
-    public void create(Player player) {
-        update_Level_UntilNextLevel(player);//тут обновляем по формуле из ТЗ player.untilNextLevel и player.level
-        playerCreatInDB(player);//тут сама запись в БД
-    }
-
-    public static void playerCreatInDB(Player player) {
-        try {
-
-            Connection connection = dataSource.getConnection();
-            
-            String sql = "INSERT INTO rpg.player (name,title,race,profession,experience,level,untilNextLevel,birthday,banned) VALUES (?,?,?,?,?,?,?,?,?)";
-            PreparedStatement statement = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);   //сжал текст ниже, чтобы всё на одну страницу влезно
-            //statement.setLong(1, player.getId()); //убрал первый ? из  VALUES (?,
-            statement.setString(1, player.getName());
-            statement.setString(2, player.getTitle());
-            statement.setString(3, player.getRace().toString());
-            statement.setString(4, player.getProfession().toString());
-            statement.setInt(5, player.getExperience());
-            statement.setInt(6, player.getLevel());
-            statement.setInt(7, player.getUntilNextLevel());
-            statement.setString(8, new SimpleDateFormat("YYYY-MM-dd").format(player.getBirthday()));
-            statement.setBoolean(9, player.getBanned());
-            int affectedRows = statement.executeUpdate();
-
-            if (affectedRows == 0) {
-                throw new SQLException("Creating user failed, no rows affected.");
-            }
-
-            try (ResultSet generatedKeys = statement.getGeneratedKeys()) {
-                if (generatedKeys.next()) {
-                    player.setId(generatedKeys.getLong(1));
-                }
-                else {
-                    throw new SQLException("Creating player failed, no ID obtained.");
-                }
-            }
-
-            connection.close();
-        } catch (Exception e) {            e.printStackTrace();        }       }
 
     public static boolean playerUpdateInDB(Player player) {
         try {
