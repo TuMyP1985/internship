@@ -29,7 +29,7 @@ public class PlayerServiceImp implements PlayerService {
         try {
             Connection connection = dataSource.getConnection();
 
-            String sql = "INSERT INTO rpg.player (name,title,race,profession,experience,level,untilNextLevel,birthday,banned) VALUES (?,?,?,?,?,?,?,?,?)";
+            String sql = "INSERT INTO player (name,title,race,profession,experience,level,untilNextLevel,birthday,banned) VALUES (?,?,?,?,?,?,?,?,?)";
             PreparedStatement statement = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);   //сжал текст ниже, чтобы всё на одну страницу влезно
             //statement.setLong(1, player.getId()); //убрал первый ? из  VALUES (?,
             statement.setString(1, player.getName());               statement.setString(2, player.getTitle());
