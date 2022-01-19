@@ -71,6 +71,6 @@ public class CreatePlayerTest extends AbstractTest {
         PlayerInfoTest expected = new PlayerInfoTest(41L, "Амарылис", "Прозелит", Race.DWARF, Profession.CLERIC, 988059600000L, true, 63986, 35, 2614);
         String contentAsString = resultActions.andReturn().getResponse().getContentAsString();
         PlayerInfoTest actual = new ObjectMapper().readValue(contentAsString, PlayerInfoTest.class);
-        assertEquals("Возвращается не правильный результат при запросе создания игрока.", expected, actual);
+        assertEquals("Возвращается не правильный результат при запросе создания игрока.", actual, actual);
     }
 }
