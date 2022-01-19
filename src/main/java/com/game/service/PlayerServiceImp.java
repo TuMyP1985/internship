@@ -4,7 +4,7 @@ import com.game.controller.PlayerOrder;
 import com.game.entity.Profession;
 import com.game.entity.Race;
 import com.game.model.Player;
-import org.springframework.jdbc.datasource.DriverManagerDataSource;
+import com.mysql.cj.jdbc.MysqlDataSource;
 import org.springframework.stereotype.Service;
 
 import javax.sql.DataSource;
@@ -21,6 +21,24 @@ public class PlayerServiceImp implements PlayerService {
     static final String DATABASE_URL = "jdbc:mysql://localhost:3306/rpg?serverTimezone=UTC&characterEncoding=UTF-8";//jdbc:mysql://localhost/PROSELYTE_TUTORIALS";
     static final String USER = "root";
     static final String PASSWORD = "root";
+    static DataSource dataSource = getDataSource();
+
+    public static DataSource getDataSource()  {
+
+        MysqlDataSource dataSource = new MysqlDataSource();
+        dataSource.setDatabaseName("rpg");
+        dataSource.setServerName("localhost");
+        dataSource.setPort(3306);
+        dataSource.setUser("root");
+        dataSource.setPassword("root");
+        try {
+            dataSource.setServerTimezone("UTC");
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return dataSource;
+    }
 
 
     //БЕЗ SQL Хранилище игроков
@@ -63,7 +81,7 @@ public class PlayerServiceImp implements PlayerService {
         List<Player> players = new ArrayList<>();
         try {
             Class.forName("com.mysql.jdbc.Driver");
-            Connection connection = DriverManager.getConnection(DATABASE_URL, USER, PASSWORD);
+            Connection connection = dataSource.getConnection();
             Statement statement = connection.createStatement();
 
 
@@ -107,7 +125,7 @@ public class PlayerServiceImp implements PlayerService {
     public static boolean delInDB(Long id) {
         try {
             Class.forName("com.mysql.jdbc.Driver");
-            Connection connection = DriverManager.getConnection(DATABASE_URL, USER, PASSWORD);
+            Connection connection = dataSource.getConnection();
             Statement statement = connection.createStatement();
 
             PreparedStatement st = connection.prepareStatement("DELETE FROM rpg.player WHERE id = ?");
@@ -124,43 +142,50 @@ public class PlayerServiceImp implements PlayerService {
     }
 
 
+    @Override
+    public void create(Player player) {
+        update_Level_UntilNextLevel(player);//тут обновляем по формуле из ТЗ player.untilNextLevel и player.level
+        playerCreatInDB(player);//тут сама запись в БД
+    }
+
     public static void playerCreatInDB(Player player) {
         try {
-            Class.forName("com.mysql.jdbc.Driver");
-            Connection connection = DriverManager.getConnection(DATABASE_URL, USER, PASSWORD);
-            Statement statId = connection.createStatement();
 
-            ResultSet resultId = statId.executeQuery("SELECT max(id) as id FROM rpg.player");
-            long id = 0;
-            if (resultId.next())
-                id = resultId.getLong("id");
-            ++id;
-            player.setId(id);
+            Connection connection = dataSource.getConnection();
+            
+            String sql = "INSERT INTO rpg.player (name,title,race,profession,experience,level,untilNextLevel,birthday,banned) VALUES (?,?,?,?,?,?,?,?,?)";
+            PreparedStatement statement = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);   //сжал текст ниже, чтобы всё на одну страницу влезно
+            //statement.setLong(1, player.getId()); //убрал первый ? из  VALUES (?,
+            statement.setString(1, player.getName());
+            statement.setString(2, player.getTitle());
+            statement.setString(3, player.getRace().toString());
+            statement.setString(4, player.getProfession().toString());
+            statement.setInt(5, player.getExperience());
+            statement.setInt(6, player.getLevel());
+            statement.setInt(7, player.getUntilNextLevel());
+            statement.setString(8, new SimpleDateFormat("YYYY-MM-dd").format(player.getBirthday()));
+            statement.setBoolean(9, player.getBanned());
+            int affectedRows = statement.executeUpdate();
 
-            String sql = "INSERT INTO rpg.player (id,name,title,race,profession,experience,level,untilNextLevel,birthday,banned) VALUES (?,?,?,?,?,?,?,?,?,?)";
-            PreparedStatement statement = connection.prepareStatement(sql);
-            statement.setLong(1, player.getId());
-            statement.setString(2, player.getName());
-            statement.setString(3, player.getTitle());
-            statement.setString(4, player.getRace().toString());
-            statement.setString(5, player.getProfession().toString());
-            statement.setInt(6, player.getExperience());
-            statement.setInt(7, player.getLevel());
-            statement.setInt(8, player.getUntilNextLevel());
-            statement.setString(9, new SimpleDateFormat("YYYY-MM-dd").format(player.getBirthday()));
-            statement.setBoolean(10, player.getBanned());
-            statement.executeUpdate();
+            if (affectedRows == 0) {
+                throw new SQLException("Creating user failed, no rows affected.");
+            }
+
+            try (ResultSet generatedKeys = statement.getGeneratedKeys()) {
+                if (generatedKeys.next()) {
+                    player.setId(generatedKeys.getLong(1));
+                }
+                else {
+                    throw new SQLException("Creating player failed, no ID obtained.");
+                }
+            }
 
             connection.close();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
+        } catch (Exception e) {            e.printStackTrace();        }       }
 
     public static boolean playerUpdateInDB(Player player) {
         try {
-            Class.forName("com.mysql.jdbc.Driver");
-            Connection connection = DriverManager.getConnection(DATABASE_URL, USER, PASSWORD);
+            Connection connection = dataSource.getConnection();
             Statement statId = connection.createStatement();
 
 
@@ -245,16 +270,7 @@ public class PlayerServiceImp implements PlayerService {
         return players;
     }
 
-    @Override
-    public void create(Player player) {
-        updateLevelExp(player);
-        //БЕЗ SQL
-//        final long playerId = PLAYER_ID_HOLDER.incrementAndGet();
-//        player.setId(playerId);
-//        PLAYER_REPOSITORY_MAP.put(playerId, player);
 
-        playerCreatInDB(player);
-    }
 
     @Override
     public Player update(Player player, Long id) {
@@ -276,7 +292,7 @@ public class PlayerServiceImp implements PlayerService {
                 playerFind.setBanned(player.getBanned());
             if (player.getExperience() != null)
                 playerFind.setExperience(player.getExperience());
-            updateLevelExp(playerFind);
+            update_Level_UntilNextLevel(playerFind);
             if (playerUpdateInDB(playerFind))
                 return playerFind;
 //            if (!checkPlayer(player))
@@ -309,7 +325,7 @@ public class PlayerServiceImp implements PlayerService {
         return readAll(requestParams).size();
     }
 
-    public static void updateLevelExp(Player player) {
+    public static void update_Level_UntilNextLevel(Player player) {
         final Integer level = (int) ((Math.sqrt(2500 + 200 * player.getExperience()) - 50) / 100);
         player.setLevel(level);
 

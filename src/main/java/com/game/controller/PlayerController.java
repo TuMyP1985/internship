@@ -41,9 +41,8 @@ public class PlayerController {
 
     @PostMapping(value = "/rest/players")
     public ResponseEntity<?> create(@RequestBody Player player) {
-        if (!PlayerServiceImp.checkPlayer(player))
+        if (!PlayerServiceImp.checkPlayer(player))//тут проверка на корректность данных для создания Player (имя, id, ...)
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
-
         playerService.create(player);
         return new ResponseEntity<>(player, HttpStatus.OK);
     }
