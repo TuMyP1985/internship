@@ -145,7 +145,7 @@ public class PlayerServiceImp implements PlayerService {
             Connection connection = dataSource.getConnection();
             Statement statement = connection.createStatement();
 
-            PreparedStatement st = connection.prepareStatement("DELETE FROM rpg.player WHERE id = ?");
+            PreparedStatement st = connection.prepareStatement("DELETE FROM player WHERE id = ?");
             st.setString(1, String.valueOf(id));
             boolean res = (st.executeUpdate() == 1);
             connection.close();
@@ -166,7 +166,7 @@ public class PlayerServiceImp implements PlayerService {
             Statement statId = connection.createStatement();
 
 
-            String sql = "UPDATE rpg.player SET name=?,title=?,race=?,profession=?,experience=?," +
+            String sql = "UPDATE player SET name=?,title=?,race=?,profession=?,experience=?," +
                     "level=?,untilNextLevel=?,birthday=?,banned=? " +
                     " WHERE id=?";
             PreparedStatement statement = connection.prepareStatement(sql);
@@ -196,7 +196,7 @@ public class PlayerServiceImp implements PlayerService {
     public List<Player> readAll(Map<String, String> requestParams) {
         //БЕЗ SQL
         //List<Player> allPlayers = new ArrayList<>(PLAYER_REPOSITORY_MAP.values());
-        List<Player> allPlayers = listFromDB("SELECT * FROM rpg.player");
+        List<Player> allPlayers = listFromDB("SELECT * FROM player");
 //        if (requestParams.size() == 0)
 //            return allPlayers;
 
@@ -292,7 +292,7 @@ public class PlayerServiceImp implements PlayerService {
         //БЕЗ SQL
 //        return PLAYER_REPOSITORY_MAP.get(id);
 
-        List<Player> allPlayers = listFromDB("SELECT * FROM rpg.player where id = " + id);
+        List<Player> allPlayers = listFromDB("SELECT * FROM player where id = " + id);
         return allPlayers.size() == 0 ? null : allPlayers.get(0);
 
     }
